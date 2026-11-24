@@ -20,6 +20,15 @@ commit; expect conflicts on newer trees. The documentation is the valuable part.
 | TQ2_0 get_rows + non-contiguous converts | makes native-ternary MoE GGUFs loadable/runnable on HIP at all | convert-table registration + MUL_MAT_ID regression cases at the batch 8/9 boundary |
 | Q2_0 engine kernels (patch 0001) | full ternary engine: planar MMQ prefill about +100%, rows-per-block decode about +48% | bit-plane dp4a kernels; see `source/iq2-xs-mmq/README.md` history |
 
+**Results so far:** these kernels make native-ternary MoE GGUFs (2.06 bpw) run
+fully on-GPU at about 200 tok/s decode on a single Vega II. The model behind
+that benchmark (a 20B-A1B ternary preview) was then evaluated head-to-head
+against our purpose-trained production model: fast and well-formed, but it
+failed execution-graded coding tasks (2/8 vs 8/8) and produced misattributed
+citations and invented facts in grounded search synthesis. The kernels and the
+ISA findings stand on their own; the speed ceiling they unlock is real, the
+current ternary preview models are not yet usable for agentic or search duties.
+
 ## Why gfx906 is different
 
 - **No MFMA.** Tensor-core math does not exist; int8 work rides `v_dot4_i32_i8`
