@@ -1,0 +1,19 @@
+[
+  {
+    "name": "Maria Jansen",
+    "age": 34,
+    "city": "Rotterdam"
+  },
+  {
+    "name": "Pieter",
+    "age": 29,
+    "city": "Utrecht"
+  },
+  {
+    "name": "Sofia Rossi",
+    "age": 41,
+    "city": "Milan"
+  }
+] [end of text]
+
+

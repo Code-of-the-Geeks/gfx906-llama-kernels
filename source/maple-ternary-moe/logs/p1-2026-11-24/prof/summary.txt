@@ -1,0 +1,21 @@
+== pp8: GPU kernel total 81.2 ms over run (5 reps + warmup)
+  void mul_mat_vec_q_moe<(ggml_type)35, 2, false>                          calls=   138 avg=   222.5us  37.8%
+  void mul_mat_vec_q_moe<(ggml_type)35, 2, true>                           calls=   138 avg=   122.3us  20.8%
+  void mul_mat_vec_q<(ggml_type)35, 8, false, false, false>                calls=   576 avg=    17.4us  12.3%
+  void quantize_q8_1<false>                                                calls=   870 avg=     4.6us   4.9%
+  void flash_attn_tile<128, 128, 8, 4, false>                              calls=   144 avg=    26.6us   4.7%
+  void mul_mat_vec_f<float, float, 8, 128, false, false>                   calls=   138 avg=    22.8us   3.9%
+== pp9: GPU kernel total 133.6 ms over run (5 reps + warmup)
+  void mul_mat_q<(ggml_type)35, 16, false, (ggml_prec)30>                  calls=   990 avg=   100.7us  74.6%
+  void flash_attn_tile<128, 128, 16, 4, false>                             calls=   144 avg=    53.0us   5.7%
+  Cijk_Alik_Bljk_SB_MT64x32x16_SN_1LDSB0_APM1_ABV0_ACED0_AF0EM1_AF1EM1_A   calls=   138 avg=    39.7us   4.1%
+  void quantize_mmq_q8_1<(mmq_q8_1_ds_layout)0, false>                     calls=   714 avg=     4.6us   2.5%
+  void mul_mat_vec_q<(ggml_type)12, 1, false, false, false>                calls=     6 avg=   466.9us   2.1%
+  void topk_moe_cuda<256, false>                                           calls=   144 avg=    14.4us   1.6%
+== pp16: GPU kernel total 160.6 ms over run (5 reps + warmup)
+  void mul_mat_q<(ggml_type)35, 16, false, (ggml_prec)30>                  calls=   990 avg=   128.2us  79.0%
+  void flash_attn_tile<128, 128, 16, 4, false>                             calls=   144 avg=    51.1us   4.6%
+  Cijk_Alik_Bljk_SB_MT64x32x16_SN_1LDSB0_APM1_ABV0_ACED0_AF0EM1_AF1EM1_A   calls=   138 avg=    38.6us   3.3%
+  void quantize_mmq_q8_1<(mmq_q8_1_ds_layout)0, false>                     calls=   714 avg=     4.6us   2.0%
+  void mul_mat_vec_q<(ggml_type)12, 1, false, false, false>                calls=     6 avg=   469.9us   1.8%
+  void topk_moe_cuda<256, false>                                           calls=   144 avg=    14.7us   1.3%

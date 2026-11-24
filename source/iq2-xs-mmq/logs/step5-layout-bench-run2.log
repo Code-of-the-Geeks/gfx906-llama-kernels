@@ -1,0 +1,17 @@
+tensor | m x k | layout | bytes/block | loads-only us | floor GB/s (74B-equiv) | full us | eff GB/s (74B-equiv) | full vs S | max|err|/rms(oracle) | max|err-S|/rms
+blk.3.ffn_gate.weight | 17408x5120 | S  stock AoS 74B | 74 | 68.69 | 375 | 153.33 (spread 1.3%) | 168 | +0.0% | 1.74e-04 | 0.00e+00
+blk.3.ffn_gate.weight | 17408x5120 | L1 planar qs|sc|d | 74 | 69.85 | 369 | 146.78 (spread 1.9%) | 176 | -4.3% | 1.74e-04 | 0.00e+00
+blk.3.ffn_gate.weight | 17408x5120 | L2 aligned AoS 80B | 80 | 69.68 | 370 | 144.73 (spread 1.0%) | 178 | -5.6% | 1.74e-04 | 0.00e+00
+blk.3.ffn_gate.weight | 17408x5120 | L3 qs|fused-scale | 96 | 69.52 | 371 | 139.44 (spread 0.6%) | 185 | -9.1% | 9.66e-04 | 9.59e-04
+blk.8.ffn_down.weight | 5120x17408 | S  stock AoS 74B | 74 | 64.75 | 398 | 170.55 (spread 2.0%) | 151 | +0.0% | 1.14e-04 | 0.00e+00
+blk.8.ffn_down.weight | 5120x17408 | L1 planar qs|sc|d | 74 | 67.75 | 380 | 144.46 (spread 1.8%) | 178 | -15.3% | 1.14e-04 | 0.00e+00
+blk.8.ffn_down.weight | 5120x17408 | L2 aligned AoS 80B | 80 | 69.82 | 369 | 135.95 (spread 0.5%) | 190 | -20.3% | 1.14e-04 | 0.00e+00
+blk.8.ffn_down.weight | 5120x17408 | L3 qs|fused-scale | 96 | 70.77 | 364 | 130.09 (spread 0.7%) | 198 | -23.7% | 8.28e-04 | 8.12e-04
+blk.0.attn_gate.weight | 6144x5120 | S  stock AoS 74B | 74 | 25.54 | 356 | 56.88 (spread 5.0%) | 160 | +0.0% | 1.21e-04 | 0.00e+00
+blk.0.attn_gate.weight | 6144x5120 | L1 planar qs|sc|d | 74 | 26.36 | 345 | 54.79 (spread 2.5%) | 166 | -3.7% | 1.21e-04 | 0.00e+00
+blk.0.attn_gate.weight | 6144x5120 | L2 aligned AoS 80B | 80 | 26.63 | 341 | 54.01 (spread 2.2%) | 168 | -5.1% | 1.21e-04 | 0.00e+00
+blk.0.attn_gate.weight | 6144x5120 | L3 qs|fused-scale | 96 | 25.81 | 352 | 52.40 (spread 2.0%) | 174 | -7.9% | 7.86e-04 | 8.20e-04
+blk.0.ssm_out.weight | 5120x6144 | S  stock AoS 74B | 74 | 22.35 | 407 | 50.21 (spread 10.0%) | 181 | +0.0% | 6.22e-04 | 0.00e+00
+blk.0.ssm_out.weight | 5120x6144 | L1 planar qs|sc|d | 74 | 23.88 | 381 | 48.72 (spread 1.8%) | 187 | -3.0% | 6.22e-04 | 0.00e+00
+blk.0.ssm_out.weight | 5120x6144 | L2 aligned AoS 80B | 80 | 23.88 | 381 | 48.11 (spread 2.3%) | 189 | -4.2% | 6.22e-04 | 0.00e+00
+blk.0.ssm_out.weight | 5120x6144 | L3 qs|fused-scale | 96 | 24.19 | 376 | 46.44 (spread 0.9%) | 196 | -7.5% | 1.13e-02 | 1.07e-02

@@ -1,0 +1,9 @@
+
+We need to calculate total cost: 4 muffins at 3 euros each = 12 euros, 3 coffees at 2.50 euros each = 7.50 euros, total = 19.50 euros. She pays with 50 euro note, so change = 50 - 19.50 = 30.50 euros. So answer: 30.50 euros.
+</think>
+
+Anna buys 4 muffins at 3 euros each, costing 12 euros, and 3 coffees at 2.50 euros each, costing 7.50 euros. The total cost is 12 + 7.50 = 19.50 euros. She pays with a 50 euro note, so the change is 50 - 19.50 = 30.50 euros.
+
+The final amount of change is 30.50 euros. [end of text]
+
+

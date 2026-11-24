@@ -1,0 +1,19 @@
+
+We need to fix the function. The issues: 1) empty list causes division by zero. 2) integer division // gives wrong result for [1,2] because it should be 1.5, not 1. Also, the function should return a float average. So we need to handle empty list (maybe return 0 or raise error? The problem says "crashes on an empty list" so we need to fix that. Could return 0 or None? Typically average of empty list is undefined, but we can return 0 or raise ValueError. The problem doesn't specify, but we can return 0. Also, use float division. So corrected function:
+
+def average(xs):
+    if not xs:
+        return 0  # or raise ValueError("List is empty")
+    total = sum(xs)
+    return total / len(xs)
+
+But the original used a loop; we can keep loop or use sum. The problem says "show only the corrected function". So we can provide the corrected version. Also note: the original used //, which is integer division. So we change to /.
+
+Thus final answer: provide the corrected function.
+</think>
+
+```python
+def average(xs):
+    if not xs:
+        return 0
+

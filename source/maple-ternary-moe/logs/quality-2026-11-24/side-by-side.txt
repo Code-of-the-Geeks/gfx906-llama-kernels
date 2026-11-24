@@ -1,0 +1,308 @@
+================================================================
+## think / 1-codefix
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+
+We need to fix the function. The issues: 1) empty list causes division by zero. 2) integer division // gives wrong result for [1,2] because it should be 1.5, not 1. Also, the function should return a float average. So we need to handle empty list (maybe return 0 or raise error? The problem says "crashes on an empty list" so we need to fix that. Could return 0 or None? Typically average of empty list is undefined, but we can return 0 or raise ValueError. The problem doesn't specify, but we can return 0. Also, use float division. So corrected function:
+
+def average(xs):
+    if not xs:
+        return 0  # or raise ValueError("List is empty")
+    total = sum(xs)
+    return total / len(xs)
+
+But the original used a loop; we can keep loop or use sum. The problem says "show only the corrected function". So we can provide the corrected version. Also note: the original used //, which is integer division. So we change to /.
+
+Thus final answer: provide the corrected function.
+</think>
+
+```python
+def average(xs):
+    if not xs:
+        return 0
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+
+We need to fix the function. The issues: 1) empty list causes ZeroDivisionError. 2) integer division // gives wrong result for [1,2] (should be 1.5, not 1). Also, the function should return a float average. So we need to handle empty list (maybe return 0 or raise exception? The problem says "crashes on an empty list and gives the wrong result for [1,2]". So we need to fix both. Typically, average of empty list is undefined; we could return 0 or raise ValueError. But the problem likely expects to handle empty list gracefully, maybe return 0. Also, use float division. So corrected function: if not xs: return 0 (or maybe raise). Then return sum(xs)/len(xs). But the original used a loop; we can keep loop or use sum. The problem says "show only the corrected function". So we can write:
+
+def average(xs):
+    if not xs:
+        return 0
+    total = 0
+    for x in xs:
+        total += x
+    return total / len(xs)
+
+But note: using sum(xs) is simpler and more Pythonic. However, the original used a loop
+
+
+================================================================
+## think / 2-arith
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+
+We need to calculate total cost: 4 muffins at 3 euros each = 12 euros, 3 coffees at 2.50 euros each = 7.50 euros, total = 19.50 euros. She pays with 50 euro note, so change = 50 - 19.50 = 30.50 euros. So answer: 30.50 euros.
+</think>
+
+Anna buys 4 muffins at 3 euros each, costing 12 euros, and 3 coffees at 2.50 euros each, costing 7.50 euros. The total cost is 12 + 7.50 = 19.50 euros. She pays with a 50 euro note, so the change is 50 - 19.50 = 30.50 euros.
+
+The final amount of change is 30.50 euros. [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+
+We need to compute total cost: 4 muffins at 3 euros each = 12 euros; 3 coffees at 2.50 euros each = 7.50 euros; total = 19.50 euros. She pays with 50 euro note, so change = 50 - 19.50 = 30.50 euros. So answer: 30.50 euros.
+</think>
+
+Anna buys 4 muffins at 3 euros each, costing 12 euros, and 3 coffees at 2.50 euros each, costing 7.50 euros. The total cost is 12 + 7.50 = 19.50 euros. She pays with a 50 euro note, so the change is 50 - 19.50 = 30.50 euros.
+
+**Final amount:** 30.50 euros. [end of text]
+
+
+
+================================================================
+## think / 3-json
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+
+We need to extract people from the text. The text mentions: Maria Jansen (34, moved from Utrecht to Rotterdam), her brother Pieter (29, still lives in Utrecht), and friend Sofia Rossi (41, based in Milan). So three people. Output JSON array of objects with name, age, city. For Maria: name "Maria Jansen", age 34, city? She moved to Rotterdam last year, so city is Rotterdam. For Pieter: name "Pieter Jansen", age 29, city is Utrecht (still lives). For Sofia: name "Sofia Rossi", age 41, city is Milan. So JSON array.
+</think>
+
+[
+  {"name": "Maria Jansen", "age": 34, "city": "Rotterdam"},
+  {"name": "Pieter Jansen", "age": 29, "city": "Utrecht"},
+  {"name": "Sofia Rossi", "age": 41, "city": "Milan"}
+] [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+
+We need to extract people from the text. The text mentions Maria Jansen, age 34, city Utrecht. Then brother Pieter age 29, still lives in Utrecht. Friend Sofia Rossi age 41, based in Milan. So three people: Maria, Pieter, Sofia. Output JSON array of objects with name, age, city. For Pieter, city is Utrecht. For Sofia, city is Milan. For Maria, city is Utrecht. Age: Maria 34, Pieter 29, Sofia 41. Names: Maria Jansen, Pieter, Sofia Rossi. Ensure correct formatting.
+</think>
+
+[
+  {"name": "Maria Jansen", "age": 34, "city": "Utrecht"},
+  {"name": "Pieter", "age": 29, "city": "Utrecht"},
+  {"name": "Sofia Rossi", "age": 41, "city": "Milan"}
+] [end of text]
+
+
+
+================================================================
+## think / 4-negconstraint
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+
+We need to list three benefits of regular exercise, using exactly three bullet points, and avoid the word "health". So think of benefits like physical fitness, mental well-being, weight management, etc. But avoid "health". Possible benefits: improved cardiovascular endurance, enhanced mood and stress reduction, increased muscle strength and flexibility. Or better sleep, improved cognitive function. Ensure no mention of "health". Also bullet points must be exactly three. Let me write them.
+</think>
+
+- Improves cardiovascular endurance and strengthens the heart and lungs.  
+- Boosts mood and reduces stress through the release of endorphins.  
+- Increases muscle strength, flexibility, and bone density. [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+
+We need to list three benefits of regular exercise, using exactly three bullet points, and avoid the word "health". So think of benefits like physical, mental, or other. Examples: improved cardiovascular fitness, better mood, increased energy. But avoid "health". Also ensure exactly three bullet points. Let me produce.
+</think>
+
+- Improves cardiovascular endurance and strengthens the heart and lungs.  
+- Enhances mood and reduces symptoms of anxiety and depression.  
+- Boosts muscle strength, flexibility, and bone density. [end of text]
+
+
+
+================================================================
+## think / 5-dutch
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+
+We need to answer: "Wat is de hoofdstad van Nederland? Antwoord in één korte Nederlandse zin." So the capital of the Netherlands is Amsterdam. Answer in one short Dutch sentence. So: "De hoofdstad van Nederland is Amsterdam." That's it.
+</think>
+
+De hoofdstad van Nederland is Amsterdam. [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+
+We need to answer: "Wat is de hoofdstad van Nederland? Antwoord in één korte Nederlandse zin." So the capital of Netherlands is Amsterdam. One short sentence in Dutch. So: "De hoofdstad van Nederland is Amsterdam." That's it.
+</think>
+
+De hoofdstad van Nederland is Amsterdam. [end of text]
+
+
+
+================================================================
+## nothink / 1-codefix
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+<think>
+We need to fix the function. The issues: 1) empty list causes ZeroDivisionError. 2) integer division // gives wrong result for [1,2] (should be 1.5, but // gives 0). Also, the function should return a float average. So we need to handle empty list (maybe return 0 or None? The problem says "return the average", but empty list is invalid. Typically return 0 or raise error. But the instruction says "fix it and show only the corrected function." So we can return 0 for empty list, or use float division. Let's use float division and handle empty list by returning 0.0 or None. I'll return 0.0 for empty list. Also use / instead of //. So corrected function:
+
+def average(xs):
+    if not xs:
+        return 0.0
+    total = sum(xs)
+    return total / len(xs)
+
+But the original used loop, but we can use sum. The problem says "show only the corrected function", so we can write it concisely. I'll provide the corrected function.
+</think>
+
+```python
+def average(xs):
+    if not xs:
+        return 0.0
+    total
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+<think>
+We need to fix the function. The issues: 1) empty list causes ZeroDivisionError. 2) integer division // gives wrong result for [1,2] (should be 1.5, not 0). Also, the function should return a float average. So fix: check if list is empty, return 0 or None? Usually average of empty list is undefined, but we can return 0 or raise error. The problem says "crashes on an empty list and gives the wrong result for [1,2]". So we need to handle empty list gracefully. Also use float division. So corrected function:
+
+def average(xs):
+    if not xs:
+        return 0  # or raise ValueError
+    total = sum(xs)
+    return total / len(xs)
+
+But the original used loop, but we can use sum. The problem says "show only the corrected function". So we can write:
+
+def average(xs):
+    if not xs:
+        return 0
+    total = 0
+    for x in xs:
+        total += x
+    return total / len(xs)
+
+But using sum is simpler. However, to keep similar style, we can use sum. But the original used loop, so we can
+
+
+================================================================
+## nothink / 2-arith
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+To determine how much change Anna receives, we need to calculate the total cost of the items she purchased and subtract that from the amount she paid.
+
+1. **Cost of muffins**:  
+   Anna buys 4 muffins at 3 euros each.  
+   Total cost for muffins = \(4 \times 3 = 12\) euros.
+
+2. **Cost of coffees**:  
+   Anna buys 3 coffees at 2.50 euros each.  
+   Total cost for coffees = \(3 \times 2.50 = 7.50\) euros.
+
+3. **Total cost**:  
+   Total cost = cost of muffins + cost of coffees = \(12 + 7.50 = 19.50\) euros.
+
+4. **Amount paid**:  
+   Anna pays with a 50 euro note.
+
+5. **Change**:  
+   Change = amount paid - total cost = \(50 - 19.50 = 30.50\) euros.
+
+Thus, Anna receives **30.50 euros** in change.
+
+\boxed{30.50} [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+To determine how much change Anna receives, we first calculate the total cost of the items she purchased.
+
+- **Cost of muffins**: 3 euros each × 4 muffins = 12 euros  
+- **Cost of coffees**: 2.50 euros each × 3 coffees = 7.50 euros  
+
+**Total cost**: 12 euros + 7.50 euros = 19.50 euros  
+
+Anna pays with a 50 euro note, so the change is:  
+**Change = 50 euros − 19.50 euros = 30.50 euros**
+
+**Final answer**: 30.50 euros [end of text]
+
+
+
+================================================================
+## nothink / 3-json
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+[
+  {
+    "name": "Maria Jansen",
+    "age": 34,
+    "city": "Rotterdam"
+  },
+  {
+    "name": "Pieter",
+    "age": 29,
+    "city": "Utrecht"
+  },
+  {
+    "name": "Sofia Rossi",
+    "age": 41,
+    "city": "Milan"
+  }
+] [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+[
+  {
+    "name": "Maria Jansen",
+    "age": 34,
+    "city": "Rotterdam"
+  },
+  {
+    "name": "Pieter",
+    "age": 29,
+    "city": "Utrecht"
+  },
+  {
+    "name": "Sofia Rossi",
+    "age": 41,
+    "city": "Milan"
+  }
+] [end of text]
+
+
+
+================================================================
+## nothink / 4-negconstraint
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+<think>
+We need to list three benefits of regular exercise without using the word "health". The benefits could be physical, mental, or social. For example: improved cardiovascular endurance, enhanced mood and stress reduction, increased muscle strength and flexibility. Ensure no mention of "health". Also, exactly three bullet points. Let me think of three distinct benefits.
+
+1. Improved cardiovascular endurance.
+2. Enhanced mood and reduced stress levels.
+3. Increased muscle strength and flexibility.
+
+That works. No "health" used. Now output.
+</think>
+
+- Improved cardiovascular endurance  
+- Enhanced mood and reduced stress levels  
+- Increased muscle strength and flexibility [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+<think>
+We need to list three benefits of regular exercise without using the word "health". So avoid that word. Benefits could be physical, mental, or social. For example: improved cardiovascular endurance, enhanced mood, increased muscle strength. But ensure no "health" appears. Also exactly three bullet points. Let me think of three distinct benefits that are commonly cited. For instance: 1. Strengthens the heart and lungs. 2. Boosts mood and reduces stress. 3. Improves sleep quality. That works. No "health" word. So final answer.
+</think>
+
+- Strengthens the heart and lungs, improving overall physical endurance.
+- Boosts mood and reduces stress, helping to manage anxiety and depression.
+- Enhances muscle tone and flexibility, reducing the risk of injury. [end of text]
+
+
+
+================================================================
+## nothink / 5-dutch
+---------------- TQ2_0 (maple-preview-TQ2_0-head-Q4_K)
+De hoofdstad van Nederland is Amsterdam. [end of text]
+
+
+
+---------------- Q4_K_M (maple-q4_k_m-metafix)
+De hoofdstad van Nederland is Amsterdam. [end of text]
+
+
+

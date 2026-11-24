@@ -1,0 +1,23 @@
+instance | stock VGPR/spill/occ | fast-sign VGPR/spill/occ
+mul_mat_vec_q_moe n/rows=2 flags=1 | 61/0/4 | 99/0/2
+mul_mat_vec_q_moe n/rows=2 flags=0 | 60/0/4 | 50/0/4
+mul_mat_vec_q n/rows=1 flags=110 | 63/0/4 | 101/0/2
+mul_mat_vec_q n/rows=1 flags=010 | 49/0/4 | 52/0/4
+mul_mat_vec_q n/rows=1 flags=100 | 49/0/4 | 57/0/4
+mul_mat_vec_q n/rows=1 flags=000 | 38/0/6 | 32/0/8
+mul_mat_vec_q n/rows=2 flags=000 | 59/0/4 | 50/0/4
+mul_mat_vec_q n/rows=3 flags=000 | 62/0/4 | 63/0/4
+mul_mat_vec_q n/rows=4 flags=000 | 58/0/4 | 59/0/4
+mul_mat_vec_q n/rows=5 flags=000 | 58/0/4 | 59/0/4
+mul_mat_vec_q n/rows=6 flags=000 | 60/0/4 | 61/0/4
+mul_mat_vec_q n/rows=7 flags=000 | 62/0/4 | 63/0/4
+mul_mat_vec_q n/rows=8 flags=000 | 64/0/4 | 65/0/3
+whole-kernel counts (plain instances):
+  n=1 stock: total 351, dwordx2 5, v_mul_lo_u32 14, v_mul_u32_u24 0, v_bcnt 4, dot4 8
+  n=1 fast : total 299, dwordx2 5, v_mul_lo_u32 2, v_mul_u32_u24 8, v_bcnt 4, dot4 8
+  n=2 stock: total 653, dwordx2 10, v_mul_lo_u32 32, v_mul_u32_u24 0, v_bcnt 8, dot4 32
+  n=2 fast : total 546, dwordx2 11, v_mul_lo_u32 8, v_mul_u32_u24 16, v_bcnt 8, dot4 32
+  n=4 stock: total 897, dwordx2 10, v_mul_lo_u32 40, v_mul_u32_u24 0, v_bcnt 8, dot4 64
+  n=4 fast : total 796, dwordx2 11, v_mul_lo_u32 16, v_mul_u32_u24 16, v_bcnt 8, dot4 64
+  n=8 stock: total 1319, dwordx2 10, v_mul_lo_u32 56, v_mul_u32_u24 0, v_bcnt 8, dot4 128
+  n=8 fast : total 1216, dwordx2 11, v_mul_lo_u32 32, v_mul_u32_u24 16, v_bcnt 8, dot4 128

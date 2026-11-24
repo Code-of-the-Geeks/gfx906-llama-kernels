@@ -1,0 +1,11 @@
+
+We need to extract people from the text. The text mentions Maria Jansen, age 34, city Utrecht. Then brother Pieter age 29, still lives in Utrecht. Friend Sofia Rossi age 41, based in Milan. So three people: Maria, Pieter, Sofia. Output JSON array of objects with name, age, city. For Pieter, city is Utrecht. For Sofia, city is Milan. For Maria, city is Utrecht. Age: Maria 34, Pieter 29, Sofia 41. Names: Maria Jansen, Pieter, Sofia Rossi. Ensure correct formatting.
+</think>
+
+[
+  {"name": "Maria Jansen", "age": 34, "city": "Utrecht"},
+  {"name": "Pieter", "age": 29, "city": "Utrecht"},
+  {"name": "Sofia Rossi", "age": 41, "city": "Milan"}
+] [end of text]
+
+

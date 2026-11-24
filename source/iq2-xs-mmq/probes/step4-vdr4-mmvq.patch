@@ -1,0 +1,92 @@
+diff --git a/ggml/src/ggml-cuda/mmvq.cu b/ggml/src/ggml-cuda/mmvq.cu
+index e1eb4d344..eddcf6af5 100644
+--- a/ggml/src/ggml-cuda/mmvq.cu
++++ b/ggml/src/ggml-cuda/mmvq.cu
+@@ -37,6 +37,63 @@ static __device__ __forceinline__ void mmvq_prefetch_l2(const void * p) {
+ 
+ typedef float (*vec_dot_q_cuda_t)(const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs);
+ 
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_VDR4)
++// Opt-in (spike step 4): IQ2_XS mmvq with VDR 4. Each call covers 64 weights (4 adjacent qs ints = 8 grid entries, two q8_1
++// blocks, both scale bytes) instead of 32, so the small per-call loads (qs, scale, d) are issued half as often per weight:
++// qs as one 16-byte load (only 2-byte aligned: relies on gfx9 unaligned global access), the two scale bytes as one ushort.
++// Same math as vec_dot_iq2_xs_q8_1 applied to each 32-weight half.
++// Measured on MI50 (2026-11-23, spike step 4): n=1 +10.6..+16.3% slower, n=4 +60..+128%, n=8 +7.5..+37.5%; the loads-only floor
++// itself got slower (4096x14336: 48.9 -> 72.7 us). Occupancy drops (n=1 6 -> 5, fused 4 -> 3, n>=2 4 -> 2-3). Do not enable.
++#define VDR_IQ2_XS_Q8_1_MMVQ_VDR4 4
++static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1_vdr4(
++    const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs) {
++
++    const block_iq2_xs * bq2 = (const block_iq2_xs *) vbq + kbx;
++
++    const int4     q2_packed = *((const int4 *) (bq2->qs + 2*iqs));             // iqs = 0, 4, 8, 12
++    const uint16_t * q2      = (const uint16_t *) &q2_packed;
++    const uint32_t sc2       = *((const uint16_t *) (bq2->scales + iqs/2));      // scales[iqs/2], scales[iqs/2 + 1]
++    const float    d2        = __half2float(bq2->d);
++
++    float sum = 0.0f;
++#pragma unroll
++    for (int h = 0; h < 2; ++h) {
++        const block_q8_1 * bq8 = bq8_1 + iqs/2 + h;
++        const int sc  = (sc2 >> (8*h)) & 0xFF;
++        const int ls0 = sc & 0x0F;
++        const int ls1 = sc >> 4;
++
++        int sumi0 = 0;
++        int sumi1 = 0;
++#pragma unroll
++        for (int l0 = 0; l0 < 8; l0 += 2) {
++            const uint16_t e        = q2[4*h + l0/2];
++            const uint2    grid_pos = ((const uint2 *) iq2xs_grid)[e & 0x1FF];
++            const uint32_t signs    = unpack_ksigns(e >> 9);
++
++            const int signs0 = __vcmpne4(signs & 0x08040201, 0);
++            const int grid_l = __vsub4(grid_pos.x ^ signs0, signs0);
++            const int u0     = get_int_b4(bq8->qs, l0 + 0);
++
++            const int signs1 = __vcmpne4(signs & 0x80402010, 0);
++            const int grid_h = __vsub4(grid_pos.y ^ signs1, signs1);
++            const int u1     = get_int_b4(bq8->qs, l0 + 1);
++
++            if (l0 < 4) {
++                sumi0 = ggml_cuda_dp4a(grid_l, u0, sumi0);
++                sumi0 = ggml_cuda_dp4a(grid_h, u1, sumi0);
++            } else {
++                sumi1 = ggml_cuda_dp4a(grid_l, u0, sumi1);
++                sumi1 = ggml_cuda_dp4a(grid_h, u1, sumi1);
++            }
++        }
++        const int sumi = (sumi0*ls0 + sumi1*ls1 + (sumi0 + sumi1)/2)/4;
++        sum += __low2float(bq8->ds) * sumi;
++    }
++    return d2 * sum;
++}
++#endif // GGML_HIP_IQ2_XS_VDR4
++
+ static constexpr __device__ vec_dot_q_cuda_t get_vec_dot_q_cuda(ggml_type type) {
+     switch (type) {
+         case GGML_TYPE_TQ2_0:   return vec_dot_tq2_0_q8_1;
+@@ -55,7 +112,11 @@ static constexpr __device__ vec_dot_q_cuda_t get_vec_dot_q_cuda(ggml_type type)
+         case GGML_TYPE_Q5_K:    return vec_dot_q5_K_q8_1;
+         case GGML_TYPE_Q6_K:    return vec_dot_q6_K_q8_1;
+         case GGML_TYPE_IQ2_XXS: return vec_dot_iq2_xxs_q8_1;
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_VDR4)
++        case GGML_TYPE_IQ2_XS:  return vec_dot_iq2_xs_q8_1_vdr4;
++#else
+         case GGML_TYPE_IQ2_XS:  return vec_dot_iq2_xs_q8_1;
++#endif // GGML_HIP_IQ2_XS_VDR4
+         case GGML_TYPE_IQ2_S:   return vec_dot_iq2_s_q8_1;
+         case GGML_TYPE_IQ3_XXS: return vec_dot_iq3_xxs_q8_1;
+         case GGML_TYPE_IQ1_S:   return vec_dot_iq1_s_q8_1;
+@@ -85,7 +146,11 @@ static constexpr __host__ __device__ int get_vdr_mmvq(ggml_type type) {
+         case GGML_TYPE_Q5_K:    return VDR_Q5_K_Q8_1_MMVQ;
+         case GGML_TYPE_Q6_K:    return VDR_Q6_K_Q8_1_MMVQ;
+         case GGML_TYPE_IQ2_XXS: return VDR_IQ2_XXS_Q8_1_MMVQ;
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_VDR4)
++        case GGML_TYPE_IQ2_XS:  return VDR_IQ2_XS_Q8_1_MMVQ_VDR4;
++#else
+         case GGML_TYPE_IQ2_XS:  return VDR_IQ2_XS_Q8_1_MMVQ;
++#endif // GGML_HIP_IQ2_XS_VDR4
+         case GGML_TYPE_IQ2_S:   return VDR_IQ2_S_Q8_1_MMVQ;
+         case GGML_TYPE_IQ3_XXS: return VDR_IQ3_XXS_Q8_1_MMVQ;
+         case GGML_TYPE_IQ3_S:   return VDR_IQ3_S_Q8_1_MMVQ;

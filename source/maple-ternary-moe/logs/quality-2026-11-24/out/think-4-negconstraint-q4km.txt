@@ -1,0 +1,9 @@
+
+We need to list three benefits of regular exercise, using exactly three bullet points, and avoid the word "health". So think of benefits like physical, mental, or other. Examples: improved cardiovascular fitness, better mood, increased energy. But avoid "health". Also ensure exactly three bullet points. Let me produce.
+</think>
+
+- Improves cardiovascular endurance and strengthens the heart and lungs.  
+- Enhances mood and reduces symptoms of anxiety and depression.  
+- Boosts muscle strength, flexibility, and bone density. [end of text]
+
+

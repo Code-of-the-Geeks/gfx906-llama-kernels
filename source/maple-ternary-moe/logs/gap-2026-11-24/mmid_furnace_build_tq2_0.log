@@ -1,0 +1,40 @@
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32752 MiB):
+  Device 0: AMD Radeon Graphics, gfx906:sramecc+:xnack- (0x906), VMM: no, Wave Size: 64, VRAM: 32752 MiB
+Testing 2 devices
+
+Backend 1/2: ROCm0
+  Device description: AMD Radeon Graphics
+  Device memory: 32752 MB (32732 MB free)
+
+~/work/furnace/src/ggml/src/ggml-cuda/ggml-cuda.cu:2050: GGML_ASSERT(convert_func != nullptr) failed
+[New LWP 300557]
+
+This GDB supports auto-downloading debuginfo from the following URLs:
+  <https://debuginfod.ubuntu.com>
+Enable debuginfod for this session? (y or [n]) [answered N; input not from terminal]
+Debuginfod has been disabled.
+To make this setting permanent, add 'set debuginfod enabled off' to .gdbinit.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/usr/lib/x86_64-linux-gnu/libthread_db.so.1".
+__syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+⚠️ warning: 56	../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S: No such file or directory
+#0  __syscall_cancel_arch () at ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S:56
+56	in ../sysdeps/unix/sysv/linux/x86_64/syscall_cancel.S
+#1  0x0000700370aa035c in __internal_syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=0, a6=0, nr=61) at ./nptl/cancellation.c:49
+⚠️ warning: 49	./nptl/cancellation.c: No such file or directory
+#2  __syscall_cancel (a1=<optimized out>, a2=<optimized out>, a3=<optimized out>, a4=<optimized out>, a5=a5@entry=0, a6=a6@entry=0, nr=61) at ./nptl/cancellation.c:75
+75	in ./nptl/cancellation.c
+#3  0x0000700370b1ca8f in __GI___wait4 (pid=<optimized out>, stat_loc=<optimized out>, options=<optimized out>, usage=<optimized out>) at ../sysdeps/unix/sysv/linux/wait4.c:30
+⚠️ warning: 30	../sysdeps/unix/sysv/linux/wait4.c: No such file or directory
+#4  0x00007003712abaf3 in ggml_print_backtrace () from ~/work/furnace/build/bin/libggml-base.so.0
+#5  0x00007003712abca6 in ggml_abort () from ~/work/furnace/build/bin/libggml-base.so.0
+#6  0x000070036fefacf3 in ggml_cuda_mul_mat_cublas(ggml_backend_cuda_context&, ggml_tensor const*, ggml_tensor const*, ggml_tensor*) () from ~/work/furnace/build/bin/libggml-hip.so.0
+#7  0x000070036fef61be in ggml_cuda_mul_mat_id(ggml_backend_cuda_context&, ggml_tensor*) () from ~/work/furnace/build/bin/libggml-hip.so.0
+#8  0x000070036fef1129 in ggml_cuda_compute_forward(ggml_backend_cuda_context&, ggml_tensor*) () from ~/work/furnace/build/bin/libggml-hip.so.0
+#9  0x000070036fee6982 in ggml_backend_cuda_graph_compute(ggml_backend*, ggml_cgraph*) () from ~/work/furnace/build/bin/libggml-hip.so.0
+#10 0x00007003712c62c2 in ggml_backend_graph_compute () from ~/work/furnace/build/bin/libggml-base.so.0
+#11 0x00007003712cc1ff in ggml_backend_compare_graph_backend () from ~/work/furnace/build/bin/libggml-base.so.0
+#12 0x0000643aa6b4a882 in test_case::eval(ggml_backend*, ggml_backend*, char const*, printer*) ()
+#13 0x0000643aa6a9a76c in test_backend(ggml_backend*, ggml_backend_device*, test_mode, char const*, char const*, printer*, char const*, int)::{lambda(ggml_backend*, ggml_backend*)#1}::operator()(ggml_backend*, ggml_backend*) const ()
+#14 0x0000643aa6a4ef8a in main ()
+[Inferior 1 (process 300556) detached]

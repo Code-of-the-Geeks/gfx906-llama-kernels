@@ -1,0 +1,33 @@
+diff --git a/ggml/src/ggml-cuda/mmvq.cu b/ggml/src/ggml-cuda/mmvq.cu
+index a5c2c374a..49525d2bd 100644
+--- a/ggml/src/ggml-cuda/mmvq.cu
++++ b/ggml/src/ggml-cuda/mmvq.cu
+@@ -2,6 +2,7 @@
+ #include "quantize.cuh"
+ #include "unary.cuh"
+ #include "vecdotq.cuh"
++#include "iq2xs-probe.cuh" // SPIKE PROBE (temporary)
+ 
+ #include <cstdint>
+ #include <type_traits>
+@@ -55,7 +56,7 @@ static constexpr __device__ vec_dot_q_cuda_t get_vec_dot_q_cuda(ggml_type type)
+         case GGML_TYPE_Q5_K:    return vec_dot_q5_K_q8_1;
+         case GGML_TYPE_Q6_K:    return vec_dot_q6_K_q8_1;
+         case GGML_TYPE_IQ2_XXS: return vec_dot_iq2_xxs_q8_1;
+-        case GGML_TYPE_IQ2_XS:  return vec_dot_iq2_xs_q8_1;
++        case GGML_TYPE_IQ2_XS:  return vec_dot_iq2_xs_q8_1_probe; // SPIKE PROBE (temporary)
+         case GGML_TYPE_IQ2_S:   return vec_dot_iq2_s_q8_1;
+         case GGML_TYPE_IQ3_XXS: return vec_dot_iq3_xxs_q8_1;
+         case GGML_TYPE_IQ1_S:   return vec_dot_iq1_s_q8_1;
+@@ -587,6 +588,11 @@ static constexpr __host__ __device__ int calc_rows_per_block(int ncols_dst, int
+     if (type == GGML_TYPE_Q2_0 && table_id == MMVQ_PARAMETERS_GCN && ncols_dst == 1) {
+         return MMVQ_Q2_0_ROWS;
+     }
++#ifdef IQ2XS_PROBE_ROWS // SPIKE PROBE (temporary)
++    if (type == GGML_TYPE_IQ2_XS && table_id == MMVQ_PARAMETERS_GCN && ncols_dst == 1) {
++        return IQ2XS_PROBE_ROWS;
++    }
++#endif
+     if (table_id == MMVQ_PARAMETERS_GENERIC || table_id == MMVQ_PARAMETERS_GCN || table_id == MMVQ_PARAMETERS_TURING || table_id == MMVQ_PARAMETERS_GB10) {
+         switch (ncols_dst) {
+             case 1:

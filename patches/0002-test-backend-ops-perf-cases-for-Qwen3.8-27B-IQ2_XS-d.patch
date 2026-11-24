@@ -1,0 +1,52 @@
+From d4bc3920b1b9b24ce1662c7fefc451b46a14fecf Mon Sep 17 00:00:00 2001
+From: jasper046 <jasper046@codeofthegeeks.com>
+Date: Mon, 23 Nov 2026 21:29:13 +0000
+Subject: [PATCH 2/9] test-backend-ops: perf cases for Qwen3.8-27B-IQ2_XS
+ decode shapes (per tensor type) + iq2_xs/q4_0 bs 6,7 on 4096x14336
+
+---
+ tests/test-backend-ops.cpp | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index 108bbed0e..298cadd92 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -42,6 +42,7 @@
+ #include <string>
+ #include <string_view>
+ #include <thread>
++#include <tuple>
+ #include <vector>
+ #include <unordered_map>
+ 
+@@ -12212,6 +12213,26 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_perf() {
+         }
+     }
+ 
++    // Qwen3.8-27B-IQ2_XS (qwen35) decode shapes by actual tensor type: {type, m, k}
++    for (auto [t, m, k] : std::vector<std::tuple<ggml_type, int64_t, int64_t>>{
++            {GGML_TYPE_IQ2_XS, 17408, 5120}, {GGML_TYPE_IQ2_XS, 5120, 17408}, {GGML_TYPE_IQ2_XS, 6144, 5120},
++            {GGML_TYPE_IQ2_XS, 5120, 6144},  {GGML_TYPE_Q4_K, 10240, 5120},   {GGML_TYPE_Q4_K, 248320, 5120},
++            {GGML_TYPE_Q8_0, 12288, 5120},   {GGML_TYPE_Q8_0, 5120, 6144},    {GGML_TYPE_Q8_0, 1024, 5120},
++            {GGML_TYPE_Q2_K, 5120, 17408}}) {
++        test_cases.emplace_back(new test_mul_mat(t, GGML_TYPE_F32, m, 1, k, {1, 1}, {1, 1}));
++        if (t == GGML_TYPE_IQ2_XS) {
++            for (int bs : {2, 3, 4, 5, 6, 7, 8, 512}) {
++                test_cases.emplace_back(new test_mul_mat(t, GGML_TYPE_F32, m, bs, k, {1, 1}, {1, 1}));
++            }
++        }
++    }
++    // IQ2_XS / Q4_0 step probe: bs 6 and 7 on the 4096x14336 reference shape (1-5, 8 exist above)
++    for (ggml_type t : {GGML_TYPE_IQ2_XS, GGML_TYPE_Q4_0}) {
++        for (int bs : {6, 7}) {
++            test_cases.emplace_back(new test_mul_mat(t, GGML_TYPE_F32, 4096, bs, 14336, {1, 1}, {1, 1}));
++        }
++    }
++
+     // Q4_K multi-column mat-vec
+     for (int64_t m : {4096, 6144, 6272, 14336}) {
+         for (int bs : {1, 2, 3, 4, 8}) {
+-- 
+2.53.0
+

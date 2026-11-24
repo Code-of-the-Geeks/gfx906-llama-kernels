@@ -1,0 +1,10 @@
+<|im_start|>user
+Extract the people from the text below as a JSON array of objects with keys "name", "age" and "city". Output only the JSON.
+
+Text: Maria Jansen, 34, moved from Utrecht to Rotterdam last year. Her brother Pieter (29) still lives in Utrecht, and their friend Sofia Rossi, aged 41, is based in Milan.
+<|im_end|>
+<|im_start|>assistant
+<think>
+
+</think>
+

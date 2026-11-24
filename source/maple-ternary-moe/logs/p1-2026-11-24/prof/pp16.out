@@ -1,0 +1,11 @@
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32752 MiB):
+  Device 0: AMD Radeon Graphics, gfx906:sramecc+:xnack- (0x906), VMM: no, Wave Size: 64, VRAM: 32752 MiB
+| model                          |       size |     params | backend    | ngl |  fa |         lm |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | ---------: | --------------: | -------------------: |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |       none |            pp16 |       547.68 ± 93.96 |
+E20261124 07:46:09.239271 134058900858496 output_file.cpp:69] Opened result file: ~/work
+E20261124 07:46:09.240859 134058900858496 output_file.cpp:69] Opened result file: ~/work
+E20261124 07:46:09.261289 134058900858496 output_file.cpp:69] Opened result file: ~/work
+E20261124 07:46:09.261508 134058900858496 output_file.cpp:69] Opened result file: ~/work
+
+build: 27ca6cb51 (11610)

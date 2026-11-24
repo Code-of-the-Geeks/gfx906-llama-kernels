@@ -1,0 +1,8 @@
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32752 MiB):
+  Device 0: AMD Radeon Graphics, gfx906:sramecc+:xnack- (0x906), VMM: no, Wave Size: 64, VRAM: 32752 MiB
+| model                          |       size |     params | backend    | ngl |  fa |         lm |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | ---------: | --------------: | -------------------: |
+| qwen35 27B IQ2_XS - 2.3125 bpw |   9.85 GiB |    26.90 B | ROCm       |  99 |   1 |       none |           pp512 |        216.13 ± 0.75 |
+| qwen35 27B IQ2_XS - 2.3125 bpw |   9.85 GiB |    26.90 B | ROCm       |  99 |   1 |       none |           tg128 |         19.68 ± 0.01 |
+
+build: 3a5e00d40 (11603)

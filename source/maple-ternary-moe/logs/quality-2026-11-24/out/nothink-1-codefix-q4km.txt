@@ -1,0 +1,21 @@
+<think>
+We need to fix the function. The issues: 1) empty list causes ZeroDivisionError. 2) integer division // gives wrong result for [1,2] (should be 1.5, not 0). Also, the function should return a float average. So fix: check if list is empty, return 0 or None? Usually average of empty list is undefined, but we can return 0 or raise error. The problem says "crashes on an empty list and gives the wrong result for [1,2]". So we need to handle empty list gracefully. Also use float division. So corrected function:
+
+def average(xs):
+    if not xs:
+        return 0  # or raise ValueError
+    total = sum(xs)
+    return total / len(xs)
+
+But the original used loop, but we can use sum. The problem says "show only the corrected function". So we can write:
+
+def average(xs):
+    if not xs:
+        return 0
+    total = 0
+    for x in xs:
+        total += x
+    return total / len(xs)
+
+But using sum is simpler. However, to keep similar style, we can use sum. But the original used loop, so we can
+

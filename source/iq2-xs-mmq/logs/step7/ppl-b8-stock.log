@@ -1,0 +1,11 @@
+0.04.402.901 I cmn          init: llama threadpool init, n_threads = 6
+0.04.570.978 I 
+0.04.571.068 I system_info: n_threads = 6 (n_threads_batch = 6) / 12 | ROCm : NO_VMM = 1 | FA_QUANTS = q4_0-q4_0,q8_0-q8_0,f16-f16,bf16-bf16 | CPU : SSE3 = 1 | SSSE3 = 1 | AVX = 1 | AVX2 = 1 | F16C = 1 | FMA = 1 | BMI2 = 1 | LLAMAFILE = 1 | OPENMP = 1 | REPACK = 1 | 
+0.04.571.143 I perplexity: saving all logits to ~/scratch/iq2xs-spike-2026-11-23/step7/kld-base-b8.bin
+0.04.571.149 I perplexity: tokenizing the input ..
+0.05.163.560 I perplexity: tokenization took 592.404 ms
+0.05.163.719 I perplexity: calculating perplexity over 8 chunks, n_ctx=512, batch_size=8, n_seq=1
+0.12.580.240 I perplexity: 7.30 seconds per pass - ETA 0.97 minutes
+[1]5.0821,[2]6.9844,[3]6.6278,[4]6.5945,[5]6.5917,[6]6.9639,[7]7.1949,[8]7.7504,
+1.04.422.412 I Final estimate: PPL = 7.7504 +/- 0.42721
+

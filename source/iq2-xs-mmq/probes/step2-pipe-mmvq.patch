@@ -1,0 +1,77 @@
+diff --git a/ggml/src/ggml-cuda/vecdotq.cuh b/ggml/src/ggml-cuda/vecdotq.cuh
+index f855a975b..fb964a824 100644
+--- a/ggml/src/ggml-cuda/vecdotq.cuh
++++ b/ggml/src/ggml-cuda/vecdotq.cuh
+@@ -1146,6 +1146,64 @@ static __device__ __forceinline__ float vec_dot_iq2_xxs_q8_1(
+ #define VDR_IQ2_XS_Q8_1_MMVQ 2
+ #define VDR_IQ2_XS_Q8_1_MMQ  2
+ 
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_PIPE_MMVQ)
++// Opt-in HIP variant (only consumer: mmvq, n <= 8). Same math as the stock version below, but the loads are issued in phases
++// so the dependent chain costs two memory round trips instead of three: stock gfx906 ISA issues the q8_1 activation loads
++// only after the grid gathers and the sign math have completed.
++//   phase 1: every load that does not depend on another load (qs, scale, d, activation qs, ds)
++//   phase 2: all 4 iq2xs_grid gathers (depend on qs only)
++//   phase 3: sign application + dp4a + scales
++// Measured on MI50 (2026-11-23, spike step 2): n=1 neutral (-1.4..+3.0% on the Qwen3.8-27B shapes); n>=2 up to +173% slower
++// because the sched_barriers stop the compiler from sharing the weight decode across the per-column calls. Do not enable.
++static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
++    const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs) {
++
++    const block_iq2_xs * bq2 = (const block_iq2_xs *) vbq + kbx;
++    const block_q8_1   * bq8 = bq8_1 + iqs/2;
++
++    const int   q2a = get_int_b2(bq2->qs, iqs + 0);
++    const int   q2b = get_int_b2(bq2->qs, iqs + 1);
++    const int   sc  = bq2->scales[iqs/2];
++    const half  d2  = bq2->d;
++    int u[8];
++#pragma unroll
++    for (int l = 0; l < 8; ++l) {
++        u[l] = get_int_b4(bq8->qs, l);
++    }
++    const float d8 = __low2float(bq8->ds);
++    __builtin_amdgcn_sched_barrier(0);
++
++    const uint32_t e[4] = {uint32_t(q2a) & 0xFFFF, uint32_t(q2a) >> 16, uint32_t(q2b) & 0xFFFF, uint32_t(q2b) >> 16};
++    uint2 g[4];
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++        g[k] = ((const uint2 *) iq2xs_grid)[e[k] & 0x1FF];
++    }
++    __builtin_amdgcn_sched_barrier(0);
++
++    int sumi0 = 0;
++    int sumi1 = 0;
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++        const uint32_t signs  = unpack_ksigns(e[k] >> 9);
++        const int      signs0 = __vcmpne4(signs & 0x08040201, 0);
++        const int      grid_l = __vsub4(g[k].x ^ signs0, signs0);
++        const int      signs1 = __vcmpne4(signs & 0x80402010, 0);
++        const int      grid_h = __vsub4(g[k].y ^ signs1, signs1);
++        if (k < 2) {
++            sumi0 = ggml_cuda_dp4a(grid_l, u[2*k + 0], sumi0);
++            sumi0 = ggml_cuda_dp4a(grid_h, u[2*k + 1], sumi0);
++        } else {
++            sumi1 = ggml_cuda_dp4a(grid_l, u[2*k + 0], sumi1);
++            sumi1 = ggml_cuda_dp4a(grid_h, u[2*k + 1], sumi1);
++        }
++    }
++    const int ls0  = sc & 0x0F;
++    const int ls1  = sc >> 4;
++    const int sumi = (sumi0*ls0 + sumi1*ls1 + (sumi0 + sumi1)/2)/4;
++    return __half2float(d2) * d8 * sumi;
++}
++#else
+ static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
+     const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs) {
+ 
+@@ -1183,6 +1241,7 @@ static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
+     const float d = __half2float(bq2->d) * __low2float(bq8_1[iqs/2].ds);
+     return d * sumi;
+ }
++#endif // GGML_HIP_IQ2_XS_PIPE_MMVQ
+ 
+ #define VDR_IQ2_S_Q8_1_MMVQ 2
+ #define VDR_IQ2_S_Q8_1_MMQ  2

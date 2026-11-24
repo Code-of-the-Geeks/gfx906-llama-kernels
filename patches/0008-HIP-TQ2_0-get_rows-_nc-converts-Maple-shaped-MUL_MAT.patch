@@ -1,0 +1,112 @@
+From 27ca6cb51139b42ad93b59df42b5a8367d335f16 Mon Sep 17 00:00:00 2001
+From: jasper046 <jasper046@codeofthegeeks.com>
+Date: Tue, 24 Nov 2026 07:36:04 +0000
+Subject: [PATCH 8/9] HIP: TQ2_0 get_rows + _nc converts, Maple-shaped
+ MUL_MAT_ID tests (maple spike P0)
+
+- getrows.cu: TQ2_0 via get_rows_cuda_q<QK_K, 1, dequantize_tq2_0>; add TQ2_0 to GET_ROWS supports_op
+- convert.cu: TQ2_0 in ggml_get_to_{fp16,bf16,fp32}_nc_cuda (dequantize_block_cuda<QK_K, 1, ...>)
+- test-backend-ops: MUL_MAT_ID tq2_0/q2_0 with n_mats=256, n_used=8, (m,k) in {(512,2048),(2048,512)},
+  n in {1,8,9,16,64,512} (n=8/9 straddles the gfx906 mmvq MMID batch limit); two multi-block GET_ROWS tq2_0
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ggml/src/ggml-cuda/convert.cu   |  6 ++++++
+ ggml/src/ggml-cuda/getrows.cu   |  4 ++++
+ ggml/src/ggml-cuda/ggml-cuda.cu |  1 +
+ tests/test-backend-ops.cpp      | 14 ++++++++++++++
+ 4 files changed, 25 insertions(+)
+
+diff --git a/ggml/src/ggml-cuda/convert.cu b/ggml/src/ggml-cuda/convert.cu
+index a0229984c..cfd12b4a3 100644
+--- a/ggml/src/ggml-cuda/convert.cu
++++ b/ggml/src/ggml-cuda/convert.cu
+@@ -679,6 +679,8 @@ to_fp16_nc_cuda_t ggml_get_to_fp16_nc_cuda(ggml_type type) {
+             return convert_unary_cuda<float>;
+         case GGML_TYPE_Q1_0:
+             return dequantize_block_cuda<QK1_0, QR1_0, dequantize_q1_0>;
++        case GGML_TYPE_TQ2_0:
++            return dequantize_block_cuda<QK_K, 1, dequantize_tq2_0>;
+         case GGML_TYPE_Q2_0:
+             return dequantize_block_cuda<QK2_0, QR2_0, dequantize_q2_0>;
+         case GGML_TYPE_Q4_0:
+@@ -704,6 +706,8 @@ to_bf16_nc_cuda_t ggml_get_to_bf16_nc_cuda(ggml_type type) {
+             return convert_unary_cuda<float, nv_bfloat16>;
+         case GGML_TYPE_Q1_0:
+             return dequantize_block_cuda<QK1_0, QR1_0, dequantize_q1_0>;
++        case GGML_TYPE_TQ2_0:
++            return dequantize_block_cuda<QK_K, 1, dequantize_tq2_0>;
+         case GGML_TYPE_Q2_0:
+             return dequantize_block_cuda<QK2_0, QR2_0, dequantize_q2_0>;
+         case GGML_TYPE_Q4_0:
+@@ -729,6 +733,8 @@ to_fp32_nc_cuda_t ggml_get_to_fp32_nc_cuda(ggml_type type) {
+             return convert_unary_cuda<half, float>;
+         case GGML_TYPE_Q1_0:
+             return dequantize_block_cuda<QK1_0, QR1_0, dequantize_q1_0>;
++        case GGML_TYPE_TQ2_0:
++            return dequantize_block_cuda<QK_K, 1, dequantize_tq2_0>;
+         case GGML_TYPE_Q2_0:
+             return dequantize_block_cuda<QK2_0, QR2_0, dequantize_q2_0>;
+         case GGML_TYPE_Q4_0:
+diff --git a/ggml/src/ggml-cuda/getrows.cu b/ggml/src/ggml-cuda/getrows.cu
+index d97e8fdb0..6fce562b0 100644
+--- a/ggml/src/ggml-cuda/getrows.cu
++++ b/ggml/src/ggml-cuda/getrows.cu
+@@ -324,6 +324,10 @@ static void ggml_cuda_get_rows_switch_src0_type(
+             get_rows_cuda_q<QK2_0, QR2_0, dequantize_q2_0>(src0_d, src1_d, dst_d,
+                 ne00, nb01, nb02, nb03, ne10, ne11, ne12, nb10, nb11, nb12, nb1, nb2, nb3, stream);
+             break;
++        case GGML_TYPE_TQ2_0:
++            get_rows_cuda_q<QK_K, 1, dequantize_tq2_0>(src0_d, src1_d, dst_d,
++                ne00, nb01, nb02, nb03, ne10, ne11, ne12, nb10, nb11, nb12, nb1, nb2, nb3, stream);
++            break;
+         case GGML_TYPE_Q4_0:
+             get_rows_cuda_q<QK4_0, QR4_0, dequantize_q4_0>(src0_d, src1_d, dst_d,
+                 ne00, nb01, nb02, nb03, ne10, ne11, ne12, nb10, nb11, nb12, nb1, nb2, nb3, stream);
+diff --git a/ggml/src/ggml-cuda/ggml-cuda.cu b/ggml/src/ggml-cuda/ggml-cuda.cu
+index 992e3d3ea..2b81eac0e 100644
+--- a/ggml/src/ggml-cuda/ggml-cuda.cu
++++ b/ggml/src/ggml-cuda/ggml-cuda.cu
+@@ -5560,6 +5560,7 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
+                     case GGML_TYPE_Q4_K:
+                     case GGML_TYPE_Q5_K:
+                     case GGML_TYPE_Q6_K:
++                    case GGML_TYPE_TQ2_0:
+                     case GGML_TYPE_IQ2_XXS:
+                     case GGML_TYPE_IQ2_XS:
+                     case GGML_TYPE_IQ2_S:
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index 298cadd92..76dfe928f 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -9788,6 +9788,9 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+         }
+     }
+     test_cases.emplace_back(new test_get_rows(GGML_TYPE_F32, 256, 8, 2, 1, 1, false, true, 3));
++    // TQ2_0 get_rows: several QK_K super-blocks per row, so the e/128 byte stride is exercised
++    test_cases.emplace_back(new test_get_rows(GGML_TYPE_TQ2_0, 4*256, 80, 30, 2, 1, false));
++    test_cases.emplace_back(new test_get_rows(GGML_TYPE_TQ2_0, 2048, 5, 4, 7, 1, true));
+ 
+     test_cases.emplace_back(new test_get_rows_back(GGML_TYPE_F32, 1, 8, 2, 1, false));
+     test_cases.emplace_back(new test_get_rows_back(GGML_TYPE_F32, 1, 70000, 4, 1, false)); // row count > CUDA grid-y limit (65535)
+@@ -11022,6 +11025,17 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
+     }
+     test_cases.emplace_back(new test_mul_mat_id(GGML_TYPE_Q4_0, GGML_TYPE_F32, 32, 2, false, 2880, 32, 2880));
+ 
++    // Maple-shaped MoE (deepgrove maple-preview): 256 experts, top-8, gate/up (m=512, k=2048) and
++    // down (m=2048, k=512). n = 8/9 straddles the mmvq MUL_MAT_ID batch limit on gfx906 (8), so the
++    // mmvq -> dequant+GEMM (later MMQ) handover is a regression test. Q2_0 is included for parity.
++    for (ggml_type type_a : {GGML_TYPE_TQ2_0, GGML_TYPE_Q2_0}) {
++        for (auto [m, k] : std::vector<std::pair<int64_t, int64_t>>{{512, 2048}, {2048, 512}}) {
++            for (int n : {1, 8, 9, 16, 64, 512}) {
++                test_cases.emplace_back(new test_mul_mat_id(type_a, GGML_TYPE_F32, 256, 8, false, m, n, k));
++            }
++        }
++    }
++
+     // multiple blocks per row: exercises the block-stride loop and the
+     // per-expert base offset, which k == 256 alone leaves untested
+     test_cases.emplace_back(new test_mul_mat_id(GGML_TYPE_TQ1_0, GGML_TYPE_F32, 28, 10, false, 1024, 1, 4096));
+-- 
+2.53.0
+

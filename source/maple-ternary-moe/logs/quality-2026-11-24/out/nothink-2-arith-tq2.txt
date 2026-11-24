@@ -1,0 +1,24 @@
+To determine how much change Anna receives, we need to calculate the total cost of the items she purchased and subtract that from the amount she paid.
+
+1. **Cost of muffins**:  
+   Anna buys 4 muffins at 3 euros each.  
+   Total cost for muffins = \(4 \times 3 = 12\) euros.
+
+2. **Cost of coffees**:  
+   Anna buys 3 coffees at 2.50 euros each.  
+   Total cost for coffees = \(3 \times 2.50 = 7.50\) euros.
+
+3. **Total cost**:  
+   Total cost = cost of muffins + cost of coffees = \(12 + 7.50 = 19.50\) euros.
+
+4. **Amount paid**:  
+   Anna pays with a 50 euro note.
+
+5. **Change**:  
+   Change = amount paid - total cost = \(50 - 19.50 = 30.50\) euros.
+
+Thus, Anna receives **30.50 euros** in change.
+
+\boxed{30.50} [end of text]
+
+

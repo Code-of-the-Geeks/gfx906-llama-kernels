@@ -1,0 +1,79 @@
+From 214d49d49d9e9b7c9e28d82b079e1dfa93459248 Mon Sep 17 00:00:00 2001
+From: jasper046 <jasper046@codeofthegeeks.com>
+Date: Mon, 23 Nov 2026 23:55:16 +0000
+Subject: [PATCH 6/9] HIP: opt-in bit-exact fast sign application for IQ2_XS
+ vec_dot (GGML_HIP_IQ2_XS_FAST_SIGN), spike step 7
+
+Replaces unpack_ksigns + __vcmpne4 + xor + __vsub4 in vec_dot_iq2_xs_q8_1 (all mmvq IQ2_XS paths:
+plain, fused gate, moe) with a computed byte mask: 24-bit multiply spread of the sign bits, mask via
+(0x80808080 - b) ^ 0x80808080, signed = (g ^ m) + b. Exact because grid bytes are 8/25/43. Removes 12
+of 14 quarter-rate v_mul_lo_u32 per loop. No layout change, no repack; flag-off ISA identical to stock.
+
+Qwen3.8-27B-IQ2_XS on MI50: wikitext-2 PPL identical in prefill, -b 8 and -b 1 modes; KLD identical
+to a stock-vs-stock control; tg128 19.53 -> 20.14 t/s (+3.1%), pp512 unchanged. Per kernel: fused
+gate mmvq -7.5%, plain mmvq +17% (net -3.3% GPU time).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ggml/src/ggml-cuda/vecdotq.cuh | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/ggml/src/ggml-cuda/vecdotq.cuh b/ggml/src/ggml-cuda/vecdotq.cuh
+index fb964a824..b499b1640 100644
+--- a/ggml/src/ggml-cuda/vecdotq.cuh
++++ b/ggml/src/ggml-cuda/vecdotq.cuh
+@@ -1204,6 +1204,29 @@ static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
+     return __half2float(d2) * d8 * sumi;
+ }
+ #else
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_FAST_SIGN)
++// Opt-in HIP sign application for IQ2_XS (spike step 6/7). Bit-exact replacement for unpack_ksigns + __vcmpne4 + xor + __vsub4:
++// b = per-byte sign bit (0/1; bit j of each nibble moved to bit 0 of byte j by a 24-bit multiply with 0x00204081, no overlapping
++// terms so no carries), m = per-byte 0x00/0xFF mask, signed = (g ^ m) + b. Exact because iq2xs_grid bytes are 8/25/43 (nonzero,
++// < 128): a negative byte becomes (g ^ 0xFF) + 1 = 256 - g without a carry out of the byte. Avoids the quarter-rate v_mul_lo_u32
++// of the stock path: clang lowers __umul24 to v_mul_lo_u32 on gfx906, hence the inline asm, and the mask is built as
++// (0x80808080 - b) ^ 0x80808080 because LLVM turns (b << 8) - b into b * 255. Checked exhaustively over all 65536 qs values in
++// vega20-box_mi50/spikes/iq2-xs-mmq/probes/layout-bench (sign_selftest).
++// Measured on MI50 + Qwen3.8-27B-IQ2_XS (2026-11-23, spike step 7): bit-exact (PPL identical, KLD = stock-vs-stock control);
++// tg128 +3.1%, pp512 unchanged. Per kernel (rocprofv3): fused-gate mmvq -7.5%, plain mmvq +17%. The win is the fused path only.
++static __device__ __forceinline__ uint32_t ggml_iq2xs_mul_u24(const uint32_t a, const uint32_t b) {
++    uint32_t r;
++    asm("v_mul_u32_u24 %0, %1, %2" : "=v"(r) : "v"(a), "v"(b));
++    return r;
++}
++static __device__ __forceinline__ void ggml_iq2xs_signed_grid_fast(const uint2 grid_pos, const uint32_t s7, int & grid_l, int & grid_h) {
++    const uint32_t s  = s7 | ((__popc(s7) & 1) << 7);
++    const uint32_t b0 = ggml_iq2xs_mul_u24(s & 0xF, 0x00204081u) & 0x01010101u;
++    const uint32_t b1 = ggml_iq2xs_mul_u24(s >> 4,  0x00204081u) & 0x01010101u;
++    grid_l = (grid_pos.x ^ ((0x80808080u - b0) ^ 0x80808080u)) + b0;
++    grid_h = (grid_pos.y ^ ((0x80808080u - b1) ^ 0x80808080u)) + b1;
++}
++#endif // GGML_HIP_IQ2_XS_FAST_SIGN
+ static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
+     const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs) {
+ 
+@@ -1219,6 +1242,13 @@ static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
+ #pragma unroll
+     for (int l0 = 0; l0 < 8; l0 += 2) {
+         const uint2 grid_pos = ((const uint2*)iq2xs_grid)[q2[l0/2] & 0x1FF];
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_FAST_SIGN)
++        int grid_l;
++        int grid_h;
++        ggml_iq2xs_signed_grid_fast(grid_pos, q2[l0/2] >> 9, grid_l, grid_h);
++        const int u0 = get_int_b4(bq8_1[iqs/2].qs, l0 + 0);
++        const int u1 = get_int_b4(bq8_1[iqs/2].qs, l0 + 1);
++#else
+         const uint32_t signs = unpack_ksigns(q2[l0/2] >> 9);
+ 
+         const int signs0 = __vcmpne4(signs & 0x08040201, 0);
+@@ -1228,6 +1258,7 @@ static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1(
+         const int signs1 = __vcmpne4(signs & 0x80402010, 0);
+         const int grid_h = __vsub4(grid_pos.y ^ signs1, signs1);
+         const int u1 = get_int_b4(bq8_1[iqs/2].qs, l0 + 1);
++#endif // GGML_HIP_IQ2_XS_FAST_SIGN
+ 
+         if (l0 < 4) {
+             sumi0 = ggml_cuda_dp4a(grid_l, u0, sumi0);
+-- 
+2.53.0
+

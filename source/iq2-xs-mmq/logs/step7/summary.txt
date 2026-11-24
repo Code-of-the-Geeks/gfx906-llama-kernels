@@ -1,0 +1,6 @@
+kernel group                                            | stock calls, total ms, us/call | flag-on calls, total ms, us/call | change/call
+iq2_xs mmvq ncols=1 fusion=false small_k=false          |   6240    306.2    49.07 |   6240    358.3    57.41 | +17.0%
+iq2_xs mmvq ncols=1 fusion=true small_k=false           |   7800   1916.3   245.68 |   7800   1772.5   227.24 | -7.5%
+non-mmvq kernels                                        |  90999    592.5     6.51 |  90999    577.9     6.35 | -2.5%
+other mmvq (q4_K/q8_0/q2_K)                             |   7865    554.0    70.44 |   7865    549.3    69.84 | -0.9%
+total GPU kernel time: stock 3369.0 ms, flag-on 3258.0 ms (-3.3%)

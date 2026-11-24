@@ -1,0 +1,14 @@
+ggml_cuda_init: found 1 ROCm devices (Total VRAM: 32752 MiB):
+  Device 0: AMD Radeon Graphics, gfx906:sramecc+:xnack- (0x906), VMM: no, Wave Size: 64, VRAM: 32752 MiB
+| model                          |       size |     params | backend    | ngl |  fa |            test |                  t/s |
+| ------------------------------ | ---------: | ---------: | ---------- | --: | --: | --------------: | -------------------: |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |             pp1 |       146.30 ± 77.80 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |             pp4 |      444.29 ± 110.81 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |             pp8 |       569.20 ± 87.50 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |             pp9 |       500.06 ± 85.87 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |            pp16 |       791.11 ± 96.31 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |            pp64 |      1271.26 ± 79.42 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |           pp512 |      2395.89 ± 25.40 |
+| maple 20B TQ2_0 - 2.06 bpw ternary |   5.49 GiB |    20.21 B | ROCm       |  99 |   1 |           tg128 |        199.64 ± 0.63 |
+
+build: 27ca6cb51 (11610)

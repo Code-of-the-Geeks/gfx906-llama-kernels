@@ -1,0 +1,129 @@
+From f7d1a4e371f322b10dc00e7f4dd49d706734a463 Mon Sep 17 00:00:00 2001
+From: jasper046 <jasper046@codeofthegeeks.com>
+Date: Mon, 23 Nov 2026 22:42:04 +0000
+Subject: [PATCH 4/9] HIP: opt-in LDS-staged iq2xs_grid for IQ2_XS mmvq
+ (GGML_HIP_IQ2_XS_LDS_GRID), spike step 3
+
+mul_mat_vec_q, IQ2_XS instances only: cooperative copy of the 4 KB codebook into LDS once per
+block, vec_dot (and the fused-gate vec_dot) read the grid from LDS. Off by default; flag-off ISA
+identical to stock. Result: n=1 net slower for decode (k=5120 shapes +13..+16.5%, long-k shapes
+-3.5..-6.4%), n=4/8 -2..-11%. Kept for the record only.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ggml/src/ggml-cuda/mmvq.cu | 85 +++++++++++++++++++++++++++++++++++---
+ 1 file changed, 79 insertions(+), 6 deletions(-)
+
+diff --git a/ggml/src/ggml-cuda/mmvq.cu b/ggml/src/ggml-cuda/mmvq.cu
+index a5c2c374a..e1eb4d344 100644
+--- a/ggml/src/ggml-cuda/mmvq.cu
++++ b/ggml/src/ggml-cuda/mmvq.cu
+@@ -606,6 +606,51 @@ static constexpr __host__ __device__ int calc_rows_per_block(int ncols_dst, int
+     return 1;
+ }
+ 
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_LDS_GRID)
++// Opt-in (spike step 3): IQ2_XS vec_dot with the iq2xs_grid codebook read from a per-block LDS copy instead of global memory.
++// Same math as vec_dot_iq2_xs_q8_1 (stock path).
++// Measured on MI50 (2026-11-23, spike step 3): n=1 +13..+16.5% slower on k=5120 shapes (4 KB copy per 1-row block), -3.5..-6.4%
++// on long-k shapes; n=4/8 -2..-11%. Net slower for Qwen3.8-27B decode (~+3.4 ms/token). Do not enable.
++static __device__ __forceinline__ float vec_dot_iq2_xs_q8_1_lds(
++    const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs,
++    const uint2 * __restrict__ grid) {
++
++    const block_iq2_xs * bq2 = (const block_iq2_xs *) vbq + kbx;
++
++    const int2 q2_packed = make_int2(get_int_b2(bq2->qs, iqs + 0), get_int_b2(bq2->qs, iqs + 1));
++    const uint16_t * q2 = (const uint16_t *) &q2_packed;
++    const int ls0 = bq2->scales[iqs/2] & 0x0F;
++    const int ls1 = bq2->scales[iqs/2] >> 4;
++
++    int sumi0 = 0;
++    int sumi1 = 0;
++#pragma unroll
++    for (int l0 = 0; l0 < 8; l0 += 2) {
++        const uint2 grid_pos = grid[q2[l0/2] & 0x1FF];
++        const uint32_t signs = unpack_ksigns(q2[l0/2] >> 9);
++
++        const int signs0 = __vcmpne4(signs & 0x08040201, 0);
++        const int grid_l = __vsub4(grid_pos.x ^ signs0, signs0);
++        const int u0 = get_int_b4(bq8_1[iqs/2].qs, l0 + 0);
++
++        const int signs1 = __vcmpne4(signs & 0x80402010, 0);
++        const int grid_h = __vsub4(grid_pos.y ^ signs1, signs1);
++        const int u1 = get_int_b4(bq8_1[iqs/2].qs, l0 + 1);
++
++        if (l0 < 4) {
++            sumi0 = ggml_cuda_dp4a(grid_l, u0, sumi0);
++            sumi0 = ggml_cuda_dp4a(grid_h, u1, sumi0);
++        } else {
++            sumi1 = ggml_cuda_dp4a(grid_l, u0, sumi1);
++            sumi1 = ggml_cuda_dp4a(grid_h, u1, sumi1);
++        }
++    }
++    const int sumi = (sumi0*ls0 + sumi1*ls1 + (sumi0 + sumi1)/2)/4;
++    const float d = __half2float(bq2->d) * __low2float(bq8_1[iqs/2].ds);
++    return d * sumi;
++}
++#endif // GGML_HIP_IQ2_XS_LDS_GRID
++
+ template <ggml_type type, int ncols_dst, bool has_fusion, bool small_k = false, bool halve_iters = false>
+ __launch_bounds__(calc_nwarps(type, ncols_dst, get_device_table_id(), small_k, halve_iters)*ggml_cuda_get_physical_warp_size(), 1)
+ static __global__ void mul_mat_vec_q(
+@@ -721,6 +766,20 @@ static __global__ void mul_mat_vec_q(
+         }
+     }
+ 
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_LDS_GRID)
++    // stage the 4 KB iq2xs_grid codebook in LDS once per block (all threads reach this point)
++    [[maybe_unused]] const uint2 * iq2xs_grid_ptr = nullptr;
++    if constexpr (type == GGML_TYPE_IQ2_XS) {
++        __shared__ uint2 iq2xs_grid_lds[512];
++#pragma unroll
++        for (int l = tid; l < 512; l += nwarps*warp_size) {
++            iq2xs_grid_lds[l] = ((const uint2 *) iq2xs_grid)[l];
++        }
++        __syncthreads();
++        iq2xs_grid_ptr = iq2xs_grid_lds;
++    }
++#endif // GGML_HIP_IQ2_XS_LDS_GRID
++
+     // partial sum for each thread
+     float tmp[ncols_dst][rows_per_cuda_block] = {{0.0f}};
+     float tmp_gate[ncols_dst][rows_per_cuda_block] = {{0.0f}};
+@@ -758,12 +817,26 @@ static __global__ void mul_mat_vec_q(
+         for (int j = 0; j < ncols_dst; ++j) {
+ #pragma unroll
+             for (int i = 0; i < rows_per_cuda_block; ++i) {
+-                tmp[j][i] += vec_dot_q_cuda(
+-                    vx, &y[j*stride_col_y + kby], kbx_offset + i*stride_row_x + kbx, kqs);
+-                if constexpr (has_fusion) {
+-                    if (use_gate) {
+-                        tmp_gate[j][i] += vec_dot_q_cuda(
+-                            vgate, &y[j*stride_col_y + kby], kbx_offset + i*stride_row_x + kbx, kqs);
++#if defined(GGML_USE_HIP) && defined(GGML_HIP_IQ2_XS_LDS_GRID)
++                if constexpr (type == GGML_TYPE_IQ2_XS) {
++                    tmp[j][i] += vec_dot_iq2_xs_q8_1_lds(
++                        vx, &y[j*stride_col_y + kby], kbx_offset + i*stride_row_x + kbx, kqs, iq2xs_grid_ptr);
++                    if constexpr (has_fusion) {
++                        if (use_gate) {
++                            tmp_gate[j][i] += vec_dot_iq2_xs_q8_1_lds(
++                                vgate, &y[j*stride_col_y + kby], kbx_offset + i*stride_row_x + kbx, kqs, iq2xs_grid_ptr);
++                        }
++                    }
++                } else
++#endif // GGML_HIP_IQ2_XS_LDS_GRID
++                {
++                    tmp[j][i] += vec_dot_q_cuda(
++                        vx, &y[j*stride_col_y + kby], kbx_offset + i*stride_row_x + kbx, kqs);
++                    if constexpr (has_fusion) {
++                        if (use_gate) {
++                            tmp_gate[j][i] += vec_dot_q_cuda(
++                                vgate, &y[j*stride_col_y + kby], kbx_offset + i*stride_row_x + kbx, kqs);
++                        }
+                     }
+                 }
+             }
+-- 
+2.53.0
+

@@ -1,0 +1,13 @@
+mul_mat_vec_q_moe ncols/rows=2 flags=1        stock: 61 VGPR, spill 0/0, occ 4    VDR4: 120 VGPR, spill 0/0, occ 2
+mul_mat_vec_q_moe ncols/rows=2 flags=0        stock: 60 VGPR, spill 0/0, occ 4    VDR4: 43 VGPR, spill 0/0, occ 5
+mul_mat_vec_q ncols/rows=1 flags=110          stock: 63 VGPR, spill 0/0, occ 4    VDR4: 122 VGPR, spill 0/0, occ 2
+mul_mat_vec_q ncols/rows=1 flags=010          stock: 49 VGPR, spill 0/0, occ 4    VDR4: 42 VGPR, spill 0/0, occ 5
+mul_mat_vec_q ncols/rows=1 flags=100          stock: 49 VGPR, spill 0/0, occ 4    VDR4: 72 VGPR, spill 0/0, occ 3
+mul_mat_vec_q ncols/rows=1 flags=000          stock: 38 VGPR, spill 0/0, occ 6    VDR4: 44 VGPR, spill 0/0, occ 5
+mul_mat_vec_q ncols/rows=2 flags=000          stock: 59 VGPR, spill 0/0, occ 4    VDR4: 79 VGPR, spill 0/0, occ 3
+mul_mat_vec_q ncols/rows=3 flags=000          stock: 62 VGPR, spill 0/0, occ 4    VDR4: 85 VGPR, spill 0/0, occ 2
+mul_mat_vec_q ncols/rows=4 flags=000          stock: 58 VGPR, spill 0/0, occ 4    VDR4: 98 VGPR, spill 0/0, occ 2
+mul_mat_vec_q ncols/rows=5 flags=000          stock: 58 VGPR, spill 0/0, occ 4    VDR4: 127 VGPR, spill 0/0, occ 2
+mul_mat_vec_q ncols/rows=6 flags=000          stock: 60 VGPR, spill 0/0, occ 4    VDR4: 100 VGPR, spill 0/0, occ 2
+mul_mat_vec_q ncols/rows=7 flags=000          stock: 62 VGPR, spill 0/0, occ 4    VDR4: 102 VGPR, spill 0/0, occ 2
+mul_mat_vec_q ncols/rows=8 flags=000          stock: 64 VGPR, spill 0/0, occ 4    VDR4: 104 VGPR, spill 0/0, occ 2

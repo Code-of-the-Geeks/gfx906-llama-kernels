@@ -1,0 +1,11 @@
+<|im_start|>user
+This Python function should return the average of a list, but it crashes on an empty list and gives the wrong result for [1, 2]. Fix it and show only the corrected function.
+
+def average(xs):
+    total = 0
+    for x in xs:
+        total += x
+    return total // len(xs)
+<|im_end|>
+<|im_start|>assistant
+<think>

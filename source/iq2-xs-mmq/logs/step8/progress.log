@@ -1,0 +1,7 @@
+== start 2026-11-24T00:03:20+00:00
+GATE build-spike-fused MUL_MAT exit=0 0 FAIL-lines, 2/2 backends passed
+GATE build-spike-fused MUL_MAT_ID exit=0 0 FAIL-lines, 2/2 backends passed
+bench done 2026-11-24T00:08:26+00:00
+ppl done 2026-11-24T00:10:24+00:00
+prof done rc=0 2026-11-24T00:10:32+00:00
+MEASURE-DONE
