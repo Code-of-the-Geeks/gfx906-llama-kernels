@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gfx906-llama-kernels — published kernels vs stock llama.cpp</title>
+<meta name="description" content="Measured comparisons of our gfx906 (MI50 / Vega II / Radeon VII) llama.cpp kernel patches against stock llama.cpp on Qwen3.8-27B IQ2_XS, Maple 20B-A1B TQ2_0 and Ternary-Bonsai-2-27B Q2_0.">
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --dim:#8b949e; --acc:#58a6ff; --good:#3fb950; --warn:#d29922; }
+  body { background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; margin:0; }
+  main { max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  h1 { font-size:1.7rem; margin-bottom:.3em; }
+  h2 { font-size:1.25rem; margin-top:2.2em; border-bottom:1px solid var(--border); padding-bottom:.3em; }
+  .sub { color:var(--dim); }
+  table { border-collapse:collapse; width:100%; margin:1em 0; background:var(--panel); }
+  th, td { border:1px solid var(--border); padding:7px 10px; text-align:left; font-size:.92rem; }
+  th { color:var(--acc); font-weight:600; }
+  .win { color:var(--good); font-weight:600; }
+  .flat { color:var(--dim); }
+  code { background:#1f2430; padding:1px 5px; border-radius:4px; font-size:.85em; }
+  .note { background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--acc); padding:10px 14px; border-radius:6px; color:var(--dim); font-size:.92rem; }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<main>
+<h1>Published kernels vs stock llama.cpp (gfx906)</h1>
+<p class="sub">All numbers measured on one 32&nbsp;GB AMD Vega II (MI50-class, gfx906), ROCm&nbsp;6.x, <code>-ngl 99 -fa 1</code>,
+patch series against upstream commit <code>ecdd29e8b</code>. Stock = same tree without our patches. Duty-cycled runs with cool-downs;
+medians over interleaved samples.</p>
+
+<h2>Qwen3.8-27B — IQ2_XS fast-sign (patch: step8 fused-only)</h2>
+<p>Computed per-byte sign mask replaces the LUT gather in the fused gate/up mmvq only. Output bit-exact, perplexity identical.</p>
+<table>
+<tr><th>Build</th><th>pp512 t/s</th><th>tg128 t/s</th><th>vs stock decode</th><th>PPL</th></tr>
+<tr><td>stock llama.cpp</td><td>214.40</td><td>19.47</td><td class="flat">—</td><td>6.9722 / 7.7504</td></tr>
+<tr><td>fast-sign-all (FS=1)</td><td>213.93</td><td>20.12</td><td>+3.35%</td><td>identical</td></tr>
+<tr><td><b>fast-sign-fused-only (FS=2)</b></td><td>213.79</td><td class="win">20.31</td><td class="win">+4.34%</td><td>identical</td></tr>
+</table>
+<p class="sub">pp512 = 9 interleaved llama-bench samples (min/max in <code>probes/step8-measure.sh</code>); plain mmvq call time unchanged vs stock.</p>
+
+<h2>Maple 20B-A1B — TQ2_0 native ternary MoE MMQ</h2>
+<p>Stock has no MMQ path for TQ2_0: batch &gt;8 falls off a cliff (dequant + hipBLAS per expert). Our tile loader unpacks ternary weights to int8 and reuses the q8_0 dp4a dot, with per-expert J sizing tuned for GCN.</p>
+<table>
+<tr><th>Build</th><th>pp9 t/s</th><th>pp16 t/s</th><th>pp64 t/s</th><th>pp512 t/s</th><th>tg128 t/s</th></tr>
+<tr><td>stock fallback (P0)</td><td>167.7 ± 5.0</td><td>207</td><td>361</td><td>837.8 ± 25.6</td><td>203.6 ± 1.0</td></tr>
+<tr><td>TQ2_0 MMQ v1</td><td>402 ± 29</td><td>607</td><td>502</td><td>1700</td><td>203.5 ± 0.8</td></tr>
+<tr><td><b>TQ2_0 MMQ v2 (final)</b></td><td class="win">537 ± 46</td><td class="win">842</td><td class="win">1291</td><td class="win">2407 ± 24 (2.9×)</td><td>199.6 ± 0.6</td></tr>
+</table>
+<p class="sub">The pp8→pp9 cliff (546 → 170 t/s on stock) is gone: throughput rises monotonically with batch size.</p>
+
+<h2>Ternary-Bonsai-2-27B — Q2_0 engine kernels (patch 0001)</h2>
+<p>Bit-plane dp4a kernels: 4 rows per block + transposed q8_1 activations for decode, packed-weight planar MMQ for prefill. Perplexity identical.</p>
+<table>
+<tr><th>Build</th><th>pp512 t/s</th><th>decode t/s</th><th>mmvq/token</th><th>effective weight BW</th></tr>
+<tr><td>stock llama.cpp</td><td>147.1</td><td>28.2</td><td>24.8 ms</td><td>~320 GB/s</td></tr>
+<tr><td>patched, decode only</td><td>147.2</td><td class="win">41.7 (+48%)</td><td>16.8 ms</td><td>~470 GB/s</td></tr>
+<tr><td><b>patched + planar MMQ prefill</b></td><td class="win">300.0 (~2.0×)</td><td class="win">41.5</td><td>16.8 ms</td><td>~470 GB/s</td></tr>
+</table>
+
+<h2>What did not work (published so you can skip it)</h2>
+<ul>
+<li>Activation-LUT kernels: 20–26 GB/s — dead ends on gfx906.</li>
+<li>LUT gathers beat by ALU recompute three independent times (sign-table variants measured +21 to +37% slower).</li>
+<li>VDR=2, 1 or 4 warps per block, loop unrolling: no gain; <code>__umul24</code> lowers to quarter-rate <code>v_mul_lo_u32</code>.</li>
+</ul>
+
+<p class="note">Methodology and ISA notes: <a href="docs/methodology.md">docs/methodology.md</a>, <a href="docs/isa-notes.md">docs/isa-notes.md</a>.
+Probe scripts and patches: <a href="probes/">probes/</a>, <a href="patches/">patches/</a>.
+This repo is not a fork and not maintained — see <a href="README.md">README.md</a>.</p>
+</main>
+</body>
+</html>

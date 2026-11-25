@@ -13,6 +13,8 @@ commit; expect conflicts on newer trees. The documentation is the valuable part.
 
 ## Headline results
 
+Measured head-to-head vs stock llama.cpp: **[benchmarks.html](benchmarks.html)** (root of this repo).
+
 | change | effect | how |
 |---|---|---|
 | IQ2_XS fast sign application (fused mmvq only) | **tg128 +4.3%** (19.5 to 20.3 t/s on Qwen3.8-27B-IQ2_XS), bit-exact output | replace the grid sign lookup with a computed per-byte mask (one `v_mul_u32_u24`); loop ISA 185 to 137 instructions, VGPR 38 to 32 |
