@@ -58,11 +58,30 @@ medians over interleaved samples.</p>
 <tr><td><b>patched + planar MMQ prefill</b></td><td class="win">300.0 (~2.0×)</td><td class="win">41.5</td><td>16.8 ms</td><td>~470 GB/s</td></tr>
 </table>
 
+<h2>Inkling-2-Mini (native NVFP4 MoE) — branchless UE4M3 scale decode (patch 0010)</h2>
+<p>gfx906 has no FP4 format support, so NVFP4 nibbles decode in software — and the stock HIP scale decode
+was a branchy <code>ldexpf</code> path. The patch rebias the exponent with a bit trick plus one select for
+subnormal codes; bit-exact vs the CPU reference for all 256 UE4M3 codes (<code>probes/ue.hip</code>), greedy
+output identical, <code>test-backend-ops</code> 0 FAIL. Duty-cycle bench, RUNS=5 (llama-bench pp512/tg256):</p>
+<table>
+<tr><th>File / build</th><th>pp512 t/s</th><th>tg256 t/s</th><th>vs stock</th></tr>
+<tr><td>full nvfp4 repack, stock</td><td>392.8</td><td>26.61</td><td class="flat">—</td></tr>
+<tr><td><b>full nvfp4 repack, patched</b></td><td class="win">406.75</td><td class="win">28.18</td><td class="win">+3.6% / +5.9%</td></tr>
+<tr><td>hybrid nvfp4 experts + q8_0 dense, stock</td><td>457.3</td><td>28.83</td><td class="flat">—</td></tr>
+<tr><td><b>hybrid nvfp4 experts + q8_0 dense, patched</b></td><td class="win">476.2</td><td class="win">30.24</td><td class="win">+4.1% / +4.9%</td></tr>
+<tr><td>q8_0 (reference)</td><td>547.1</td><td>30.53</td><td class="flat">—</td></tr>
+</table>
+<p class="sub">Isolated MUL_MAT_ID at Inkling shapes: −14/−15% at n=1, −7/−10% at n=512. The hybrid file keeps the trained
+nvfp4 experts bit-exact (layers 0–19) and requantizes dense/attention to q8_0: 2.31 GB/token vs 3.59 (full repack) /
+2.95 (q8_0) — with the patch its decode matches q8_0 within 1% at 17.6 GB and 18.25 GiB VRAM peak.</p>
+
 <h2>What did not work (published so you can skip it)</h2>
 <ul>
 <li>Activation-LUT kernels: 20–26 GB/s — dead ends on gfx906.</li>
 <li>LUT gathers beat by ALU recompute three independent times (sign-table variants measured +21 to +37% slower).</li>
 <li>VDR=2, 1 or 4 warps per block, loop unrolling: no gain; <code>__umul24</code> lowers to quarter-rate <code>v_mul_lo_u32</code>.</li>
+<li>NVFP4 alternatives: int8 experts + fp32-scale repack needs 33+ GiB (doesn't fit 32 GiB); no WMMA on gfx906;
+MUL_MAT_ID already launches once — the remaining decode gap vs q8_0 was BF16 dense bytes, not kernel cost.</li>
 </ul>
 
 <p class="note">Methodology and ISA notes: <a href="docs/methodology.md">docs/methodology.md</a>, <a href="docs/isa-notes.md">docs/isa-notes.md</a>.

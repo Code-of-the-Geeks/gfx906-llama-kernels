@@ -1,0 +1,66 @@
+From 33574a89f801d9267e1ad46882aa44ef36309dfd Mon Sep 17 00:00:00 2001
+From: jasper046 <jasper046@codeofthegeeks.com>
+Date: Wed, 25 Nov 2026 10:41:37 +0000
+Subject: [PATCH] HIP: branchless exact UE4M3 decode for NVFP4 scales (gfx906)
+
+Replace the branchy ldexpf software path in ggml_cuda_ue4m3_to_fp32 on HIP
+with an exponent-rebias bit trick plus a select for subnormal codes.
+Bit-exact vs the CPU ggml_ue4m3_to_fp32 for all 256 codes (0x7F -> 0,
+0xFF -> 240 as on CPU). MUL_MAT_ID nvfp4 at Inkling shapes: -14/-15% at
+n=1, -7/-10% at n=512. Also adds Inkling MoE MUL_MAT_ID perf cases.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ ggml/src/ggml-cuda/common.cuh | 10 ++++++++++
+ tests/test-backend-ops.cpp    |  7 +++++++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/ggml/src/ggml-cuda/common.cuh b/ggml/src/ggml-cuda/common.cuh
+index 5b3c32858..33aec3fe9 100644
+--- a/ggml/src/ggml-cuda/common.cuh
++++ b/ggml/src/ggml-cuda/common.cuh
+@@ -917,6 +917,15 @@ static __device__ __forceinline__ float ggml_cuda_ue4m3_to_fp32(uint8_t x) {
+     const uint32_t bits = x * (x != 0x7F && x != 0xFF); // Convert NaN to 0.0f to match CPU implementation.
+     const __nv_fp8_e4m3 xf = *reinterpret_cast<const __nv_fp8_e4m3 *>(&bits);
+     return static_cast<float>(xf) / 2;
++#else
++#if defined(GGML_USE_HIP)
++    // Branchless exact decode (nvfp4 kernel spike): normal codes rebias the exponent (e4m3 bias 7 -> fp32 bias 127, minus 1 for the /2),
++    // subnormal codes are man * 2^-10, code 0x7F (NaN) -> 0 to match the CPU. Sign bit ignored (UE4M3), as in the generic path.
++    const uint32_t u    = x & 0x7F;
++    const float    norm = __uint_as_float((u << 20) + (119u << 23));
++    const float    sub  = (float) (u & 7) * 0.0009765625f;
++    const float    r    = (u >> 3) ? norm : sub;
++    return x == 0x7F ? 0.0f : r;
+ #else
+     if (x == 0 || (x == 0x7F && x != 0xFF)) { // Convert NaN to 0.0f
+         return 0.0f;
+@@ -930,6 +939,7 @@ static __device__ __forceinline__ float ggml_cuda_ue4m3_to_fp32(uint8_t x) {
+         raw = ldexpf(1.0f + (float) man / 8.0f, exp - 7);
+     }
+     return static_cast<float>(raw / 2);
++#endif // defined(GGML_USE_HIP)
+ #endif // defined(FP8_AVAILABLE) && !defined(GGML_USE_HIP)
+ #endif // defined(GGML_USE_HIP) && defined(CDNA3) && defined(FP8_AVAILABLE) && HIP_VERSION >= 60200000
+ }
+diff --git a/tests/test-backend-ops.cpp b/tests/test-backend-ops.cpp
+index 772c9f02d..bf596e716 100644
+--- a/tests/test-backend-ops.cpp
++++ b/tests/test-backend-ops.cpp
+@@ -14989,6 +14989,13 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_perf() {
+     }
+ 
+ 
++    // inkling-2-mini MoE shapes (nvfp4 kernel spike): 128 experts, top-8, gate_up 2304x2304, down 1152->2304
++    for (ggml_type ta : {GGML_TYPE_NVFP4, GGML_TYPE_Q8_0, GGML_TYPE_Q4_0}) {
++        for (int n : {1, 8, 512}) {
++            test_cases.emplace_back(new test_mul_mat_id(ta, GGML_TYPE_F32, 128, 8, false, 2304, n, 2304));
++            test_cases.emplace_back(new test_mul_mat_id(ta, GGML_TYPE_F32, 128, 8, false, 2304, n, 1152));
++        }
++    }
+     return test_cases;
+ }
+ 
+-- 
+2.53.0
+

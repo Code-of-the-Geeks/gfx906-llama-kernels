@@ -21,6 +21,7 @@ Measured head-to-head vs stock llama.cpp: **[benchmarks.html](benchmarks.html)**
 | TQ2_0 MMQ (native ternary MoE prefill) | **pp9 167 to 509 t/s, pp512 821 to 2394** on Maple 20B-A1B TQ2_0 | tile loader unpacking ternary weights to int8, reusing the q8_0 dp4a dot; plus per-expert J sizing for GCN |
 | TQ2_0 get_rows + non-contiguous converts | makes native-ternary MoE GGUFs loadable/runnable on HIP at all | convert-table registration + MUL_MAT_ID regression cases at the batch 8/9 boundary |
 | Q2_0 engine kernels (patch 0001) | full ternary engine: planar MMQ prefill about +100%, rows-per-block decode about +48% | bit-plane dp4a kernels; see `source/iq2-xs-mmq/README.md` history |
+| NVFP4 UE4M3 scale decode (patch 0010) | Inkling-2-Mini pp512/tg256 +3.6%/+5.9% (full repack); hybrid nvfp4+q8_0 decode matches q8_0 within 1% at 17.6 GB | branchless exponent-rebias replacing the branchy `ldexpf` path; bit-exact for all 256 UE4M3 codes (`probes/ue.hip`) |
 
 **Results so far:** these kernels make native-ternary MoE GGUFs (2.06 bpw) run
 fully on-GPU at about 200 tok/s decode on a single Vega II. The model behind
