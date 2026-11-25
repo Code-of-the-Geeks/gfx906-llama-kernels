@@ -14,7 +14,9 @@ default OFF — applying the series changes nothing until you enable a flag.
 | 0007 fast sign restricted to fused instances | `GGML_HIP_IQ2_XS_FAST_SIGN=2` | **winner** (+4.3% tg128, bit-exact, PPL identical) |
 | 0008 TQ2_0 get_rows + _nc converts + Maple-shaped MUL_MAT_ID tests | none (correctness path) | keeper — required for native-ternary MoE GGUFs |
 | 0009 TQ2_0 MMQ tile kernel + per-expert J sizing | dispatch by batch size | **winner** (MoE prefill pp512 x2.9, batch>8 cliff removed) |
+| 0010 branchless exact UE4M3 decode for NVFP4 scales | none (always on for HIP) | **winner** (Inkling nvfp4 tg +5.9%, bit-exact all 256 codes, greedy identical) |
 
 `git am patches/*.patch` from a clean `ecdd29e8b` checkout. If you only want the
 two winners without the rejected experiments: 0001, 0007 (needs 0006 as its
-parent), 0008, 0009.
+parent), 0008, 0009. Patch 0010 applies on `66a3b01b0` and is independent of the
+others (it only touches `common.cuh` + test cases).
