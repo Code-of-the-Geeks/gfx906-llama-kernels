@@ -11,6 +11,10 @@ can pick up what works and skip what does not.
 **Not a fork and not maintained.** The patches are a series against one pinned
 commit; expect conflicts on newer trees. The documentation is the valuable part.
 
+## How-to guides
+
+- [Running Inkling-2-Mini native NVFP4 on an MI50](docs/nvfp4-inkling-mi50.md) — model download, build, serve flags, and the reasoning-effort contract.
+
 ## Headline results
 
 Measured head-to-head vs stock llama.cpp: **[benchmarks.html](benchmarks.html)** (root of this repo).
